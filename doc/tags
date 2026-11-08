@@ -1,0 +1,10 @@
+:Build	build.txt	/*:Build*
+User_BuildAttach	build.txt	/*User_BuildAttach*
+build	build.txt	/*build*
+build-dap	build.txt	/*build-dap*
+build-keymaps	build.txt	/*build-keymaps*
+build-options	build.txt	/*build-options*
+build-project	build.txt	/*build-project*
+build.txt	build.txt	/*build.txt*
+g:build	build.txt	/*g:build*
+g:build_filetypes	build.txt	/*g:build_filetypes*

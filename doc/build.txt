@@ -1,0 +1,146 @@
+*build.txt*  Build, run and debug C/C++ programs, whatever builds them
+
+Author:  Urtzi Enriquez-Urzelai
+License: GPL-3.0
+
+==============================================================================
+INTRODUCTION                                                           *build*
+
+build.nvim builds, runs and debugs C/C++ programs from Nvim, whatever builds
+them: a build.sh, a Makefile, CMake, or nothing (a file, or a folder of
+files). Builds run in the background and their errors go to the |quickfix|
+list. Debugging builds first, then starts the program with nvim-dap.
+
+It costs nothing at startup: plugin/build.lua only defines an autocmd, and the
+rest loads the first time |:Build| is used. It defines no keymaps (see
+|build-keymaps|).
+
+==============================================================================
+THE PROJECT                                                    *build-project*
+
+Walking up from the current file, the first folder with one of these files is
+the project's root. Builds run there. A build file in your home folder is
+never taken.
+
+  build.sh        The targets are the labels of its `case` (`debug)`,
+                  `asan | sanitize)`, ...); the default is what `${1:-...}`
+                  names. The program a target makes is read from its line:
+                  `debug) build bin/app_debug ...`
+  Makefile        Also GNUmakefile, makefile. The targets are its rules
+                  (not `VAR := ...`, `.PHONY`, `*.o`); the default is the
+                  first, as for a bare `make`. The program is the target if it
+                  is a path (`bin/app:`), or its one prerequisite
+                  (`debug: bin/app_debug`). Builds use `make -j`.
+  CMakeLists.txt  The topmost one. The targets are Debug, Release and
+                  RelWithDebInfo, each configured in build/<type>/ (with
+                  compile_commands.json). The program is asked once.
+
+A folder with several of them uses the first in that order.
+
+Without any, a C or C++ file is built by itself, with a profile:
+
+  debug            -O0 -g3 (the default)
+  asan             debug, with the address and undefined-behaviour sanitizers
+  release          -O2 -DNDEBUG
+  release+symbols  -O2 -g3 -fno-omit-frame-pointer
+
+The program is the file with `main()` (the current file, or the folder's only
+one), built with every file of the folder that has no `main()`, and named
+after it.
+
+The debug target is `debug` (Debug for CMake; for a file, the profile if it
+has -g, else `debug`); without one it is asked once. What is chosen (target,
+debug target, programs, arguments) is remembered per project, in
+stdpath("data")/build-projects.json.
+
+==============================================================================
+COMMANDS                                                              *:Build*
+
+:Build exists only in the buffers build.nvim works in (|g:build_filetypes|).
+
+:Build                     Build the chosen target, in the background. Saves
+                           the files first. The output goes to the quickfix
+                           list, which opens if the build fails.
+:Build target [{name}]     Choose the target (a list, with "other…" for any
+                           arguments: e.g. `-B CFLAGS='-O0 -g'` for make, or
+                           your own flags for a file), or set it to {name}.
+:Build run                 Run the program as it was last built (it does not
+                           build), in a terminal (|g:build| run_split), from
+                           the project's root, with its arguments.
+:Build debug               Build the debug target, then debug the program
+                           with nvim-dap (see |build-dap|).
+:Build debug-external      The same, in |g:build| external_debugger.
+:Build debug-target [{name}]
+                           Choose the debug target, or set it to {name}.
+:Build args [{args}]       The program's arguments: edit them, or set them to
+                           {args}. Quotes group words; for :Build run they go
+                           through the shell (so `< input.txt` works there).
+:Build program             Set the program the build and debug targets make,
+                           where it cannot be told.
+:Build info                Show the project, its targets, program, arguments,
+                           and (for a file) the compile command.
+:Build cancel              Stop the build running.
+:Build forget              Forget what was chosen for this project.
+
+==============================================================================
+KEYMAPS                                                        *build-keymaps*
+
+                                                           *User_BuildAttach*
+build.nvim fires `User BuildAttach` in each buffer it attaches to, with the
+buffer in `data.buf`. Define your keymaps there: >lua
+
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "BuildAttach",
+    callback = function(ev)
+      local function map(lhs, cmd, desc)
+        vim.keymap.set("n", lhs, "<Cmd>Build " .. cmd .. "<CR>",
+          { buffer = ev.data.buf, desc = desc })
+      end
+      map("<leader>cc", "", "Build")
+      map("<leader>ct", "target", "Choose build target")
+      map("<leader>cr", "run", "Run program")
+    end,
+  })
+<
+==============================================================================
+OPTIONS                                                        *build-options*
+
+                                                                    *g:build*
+A table; every field is optional, and it is read each time it is used: >lua
+
+  vim.g.build = {
+    cc = "gcc",                      -- the compilers of files without
+    cxx = "g++",                     -- a build system
+    cstd = "c17",
+    cxxstd = "c++20",
+    warnings = { "-Wall", "-Wextra" },
+    run_split = "botright 15split",  -- where :Build run opens its terminal
+    external_debugger = nil,         -- e.g. { "raddbg" }
+  }
+<
+                                                          *g:build_filetypes*
+The filetypes :Build attaches to. "sh" counts only for files named build.sh.
+Default: >lua
+  vim.g.build_filetypes = { "c", "cpp", "make", "cmake", "sh" }
+<
+==============================================================================
+DEBUGGING                                                          *build-dap*
+
+|:Build| debug needs nvim-dap, with a `gdb` adapter (gdb 14 and later speak
+DAP): >lua
+  require("dap").adapters.gdb =
+    { type = "executable", command = "gdb", args = { "--interpreter=dap" } }
+<
+require("build.dap").configuration()
+    An nvim-dap configuration, "Build & debug", that builds the debug target
+    each time it starts, and then debugs its program (with its arguments, from
+    the project's root). To have it in nvim-dap's list: >lua
+      table.insert(require("dap").configurations.c, 1,
+        require("build.dap").configuration())
+<
+require("build.dap").env
+    The environment it debugs with: the sanitizers stop the program at the
+    error (so the debugger shows where it is), and the leak check, which does
+    not work under a debugger, is off.
+
+ vim:tw=78:ts=8:ft=help:norl:
