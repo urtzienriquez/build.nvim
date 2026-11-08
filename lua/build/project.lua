@@ -90,6 +90,28 @@ function M.find_root(path)
   return root, "cmake", "CMakeLists.txt"
 end
 
+local SOURCE_EXTS = { c = { c = true }, cpp = { cpp = true, cc = true, cxx = true } }
+
+-- the language of a file built by itself: its filetype; but a header (.h) is C for some versions
+-- of Nvim and C++ for others (see g:c_syntax_for_h), so for it the sources beside it decide
+local function language(path, ft)
+  if path:match("%.h$") then
+    local c, cpp = false, false
+    for name, type in vim.fs.dir(vim.fs.dirname(path)) do
+      local ext = type == "file" and name:match("%.([^.]+)$")
+      if ext and SOURCE_EXTS.c[ext] then
+        c = true
+      elseif ext and SOURCE_EXTS.cpp[ext] then
+        cpp = true
+      end
+    end
+    if c ~= cpp then
+      return c and "c" or "cpp"
+    end
+  end
+  return ft == "c" and "c" or "cpp"
+end
+
 ---@class build.Project
 ---@field root string
 ---@field kind "buildsh"|"make"|"cmake"|"single"
@@ -111,7 +133,8 @@ function M.get(buf)
     end
     root, kind = vim.fs.dirname(path), "single"
   end
-  return { root = root, kind = kind, file = file, path = path, lang = ft == "c" and "c" or "cpp", state = state(root) }
+  local lang = kind == "single" and language(path, ft) or (ft == "c" and "c" or "cpp")
+  return { root = root, kind = kind, file = file, path = path, lang = lang, state = state(root) }
 end
 
 ----------------------------------------
@@ -240,7 +263,6 @@ end
 
 -- a folder of files: the file with main() (this one, or the folder's only one), with every
 -- file of the folder that has no main()
-local SOURCE_EXTS = { c = { c = true }, cpp = { cpp = true, cc = true, cxx = true } }
 
 local function has_main(file)
   for _, line in ipairs(M.read(file)) do

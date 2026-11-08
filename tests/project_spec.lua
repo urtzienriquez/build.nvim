@@ -135,6 +135,26 @@ describe("programs", function()
   end)
 end)
 
+describe("a header", function()
+  -- Nvim calls a .h file C or C++ depending on its version (0.12: C++), so the sources beside it
+  -- decide its language, whatever its filetype
+  it("is C among C files, C++ among C++ files", function()
+    for _, case in ipairs({
+      { files = { ["main.c"] = "int main(void) { return 0; }", ["util.h"] = "" }, lang = "c" },
+      { files = { ["main.cpp"] = "int main() { return 0; }", ["util.h"] = "" }, lang = "cpp" },
+    }) do
+      local root = helpers.tree(case.files)
+      local buf = helpers.open(root .. "/util.h")
+      for _, ft in ipairs({ "c", "cpp" }) do
+        vim.bo[buf].filetype = ft
+        local p = project.get(buf)
+        assert.equals(case.lang, p.lang, ft)
+        assert.equals(root .. "/main", project.single_sources(p).program, ft)
+      end
+    end
+  end)
+end)
+
 describe("arguments", function()
   it("are split like a shell's", function()
     assert.same({ "a", "b c", "d" }, project.split_args("a 'b c' d"))
