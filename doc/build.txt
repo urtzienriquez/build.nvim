@@ -125,6 +125,7 @@ A table; every field is optional, and it is read each time it is used: >lua
     warnings = { "-Wall", "-Wextra" },
     run_split = "botright 15split",  -- where :Build run opens its terminal
     external_debugger = nil,         -- e.g. { "raddbg" }
+    dap = true,                      -- "Build & debug" in nvim-dap's list
   }
 <
                                                           *g:build_filetypes*
@@ -143,10 +144,11 @@ DAP): >lua
 require("build.dap").configuration()
     An nvim-dap configuration, "Build & debug", that builds the debug target
     each time it starts, and then debugs its program (with its arguments, from
-    the project's root). To have it in nvim-dap's list: >lua
-      table.insert(require("dap").configurations.c, 1,
-        require("build.dap").configuration())
-<
+    the project's root). It is in nvim-dap's list (|dap.continue()|), first,
+    in the buffers :Build works in: build.nvim registers it as a configuration
+    provider (|dap-providers-configs|), leaving `dap.configurations` alone.
+    `vim.g.build = { dap = false }` leaves it out, e.g. to put it in your own
+    configurations instead.
 require("build.dap").env
     The environment it debugs with: the sanitizers stop the program at the
     error (so the debugger shows where it is), and the leak check, which does

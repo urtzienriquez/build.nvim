@@ -77,6 +77,7 @@ vim.g.build = {
   warnings = { "-Wall", "-Wextra" },
   run_split = "botright 15split",   -- where :Build run opens its terminal
   external_debugger = nil,          -- e.g. { "raddbg" }: the program and its arguments are added
+  dap = true,                       -- "Build & debug" in nvim-dap's list
 }
 vim.g.build_filetypes = { "c", "cpp", "make", "cmake", "sh" } -- sh: only files named build.sh
 ```
@@ -91,14 +92,13 @@ Every field is optional. No `setup()` is needed.
 require("dap").adapters.gdb = { type = "executable", command = "gdb", args = { "--interpreter=dap" } }
 ```
 
-To get "Build & debug" in nvim-dap's own list (`require("dap").continue()`), add its
-configuration to yours:
+With nvim-dap installed, its list (`require("dap").continue()`) has "Build & debug" first, in
+the buffers `:Build` works in (a configuration provider: your `dap.configurations` are left
+alone). `vim.g.build = { dap = false }` leaves it out; `require("build.dap").configuration()` is
+the configuration itself, to put where you want.
 
-```lua
-table.insert(require("dap").configurations.c, 1, require("build.dap").configuration())
-```
-
-It builds the debug target each time it starts. Under the debugger, the sanitizers stop the
+It builds the debug target each time it starts, and debugs its program with its arguments
+(`:Build args`), from the project's root. Under the debugger, the sanitizers stop the
 program at the error instead of exiting (`require("build.dap").env`).
 
 ## Tests

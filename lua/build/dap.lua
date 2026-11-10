@@ -1,8 +1,8 @@
 --- Debugging what is built. nvim-dap is needed only by configuration() and debug().
 ---
 --- configuration() is an nvim-dap configuration that builds the project's debug target each
---- time it starts, and then debugs it with gdb. Add it to yours, e.g.
----   table.insert(require("dap").configurations.c, 1, require("build.dap").configuration())
+--- time it starts, and then debugs it with gdb. plugin/build.lua puts it in nvim-dap's list
+--- (dap.continue()), in the buffers :Build works in.
 
 -- (required at startup by configs that add configuration() to nvim-dap: the rest loads on use)
 local function async_module()

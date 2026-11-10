@@ -11,6 +11,7 @@ M.defaults = {
   run_split = "botright 15split", -- the window :Build run opens its terminal in
   external_debugger = nil, -- for :Build debug-external, e.g. { "raddbg" } (the program and its
   -- arguments are added)
+  dap = true, -- "Build & debug" in nvim-dap's list (read by plugin/build.lua)
 }
 
 function M.get()

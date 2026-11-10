@@ -1,7 +1,7 @@
 -- Only one autocmd is defined here; everything else loads on use. In the buffers build.nvim
 -- works in (vim.g.build_filetypes; sh only for files named build.sh) it defines the
 -- buffer-local :Build command and fires `User BuildAttach` (data: { buf = ... }), where your
--- keymaps go. It defines no keymaps itself.
+-- keymaps go. It defines no keymaps itself. With nvim-dap, it adds "Build & debug" to its list.
 
 if vim.g.loaded_build then
   return
@@ -22,6 +22,27 @@ local function command(o)
   require("build").command(o)
 end
 
+-- "Build & debug" in nvim-dap's list (dap.continue()), in the buffers :Build works in: a
+-- configuration provider (:help dap-providers-configs), registered once nvim-dap can be loaded.
+-- vim.g.build = { dap = false } leaves it out.
+local dap_registered = false
+local function register_dap()
+  if dap_registered then
+    return
+  end
+  local ok, dap = pcall(require, "dap")
+  if not ok or type(dap.providers) ~= "table" or type(dap.providers.configs) ~= "table" then
+    return -- (no nvim-dap yet: tried again in the next buffer)
+  end
+  dap_registered = true
+  dap.providers.configs.build = function(bufnr)
+    if (vim.g.build or {}).dap == false or not vim.b[bufnr].build_attached then
+      return {}
+    end
+    return { require("build.dap").configuration() }
+  end
+end
+
 local function attach(buf)
   local ft = vim.bo[buf].filetype
   if not vim.tbl_contains(vim.g.build_filetypes or DEFAULT_FILETYPES, ft) then
@@ -30,6 +51,7 @@ local function attach(buf)
   if ft == "sh" and vim.fs.basename(vim.api.nvim_buf_get_name(buf)) ~= "build.sh" then
     return
   end
+  register_dap()
   vim.api.nvim_buf_create_user_command(buf, "Build", command, opts)
   if not vim.b[buf].build_attached then
     vim.b[buf].build_attached = true
