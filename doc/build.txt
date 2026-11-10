@@ -75,12 +75,21 @@ COMMANDS                                                              *:Build*
 :Build args [{args}]       The program's arguments: edit them, or set them to
                            {args}. Quotes group words; for :Build run they go
                            through the shell (so `< input.txt` works there).
+                           Without {args} the command line is filled with
+                           `:Build args` and the current ones, to edit there
+                           (|c_CTRL-F| opens the command-line window).
+:Build args!               Clear the program's arguments.
 :Build program             Set the program the build and debug targets make,
                            where it cannot be told.
 :Build info                Show the project, its targets, program, arguments,
                            and (for a file) the compile command.
 :Build cancel              Stop the build running.
 :Build forget              Forget what was chosen for this project.
+
+At build.nvim's own prompts (an "other…" target asked for while debugging, a
+program's path), which cannot open the command-line window, CTRL-F opens a
+window much like it instead: <CR> uses the line under the cursor, closing the
+window cancels.
 
 ==============================================================================
 KEYMAPS                                                        *build-keymaps*

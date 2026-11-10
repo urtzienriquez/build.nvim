@@ -61,7 +61,8 @@ local function target_command(which, label)
       project.set(p, which, t)
     else
       local current = which == "target" and project.target(p) or project.known_debug_target(p)
-      t = project.pick(p, which, current)
+      -- "other…" puts `:Build target ` on the command line, to be typed there
+      t = project.pick(p, which, current, { cmdline = true })
     end
     if t then
       async.notify(label .. ": " .. name(t))
@@ -71,20 +72,20 @@ end
 M.target = target_command("target", "Build target")
 M.debug_target = target_command("debug_target", "Debug target")
 
---- :Build args [args]: set them, or edit them
-M.args = async.wrap(function(args)
+--- :Build args [args]: set them, or edit them on the command line; :Build args! clears them
+M.args = async.wrap(function(args, bang)
   local p = begin()
   local program = p and project.program(p, project.target(p))
   if not program then
     return
   end
-  if args == "" then
-    args = async.input({
-      prompt = ("Arguments of %s: "):format(vim.fs.basename(program)),
-      default = project.args(p, program),
-    })
-  end
-  if args then
+  if bang then
+    project.set_args(p, program, "")
+    async.notify("Arguments of " .. vim.fs.basename(program) .. " cleared")
+  elseif args == "" then
+    -- a real command line, so that <C-f> opens the command-line window
+    async.cmdline("Build args " .. project.args(p, program))
+  else
     project.set_args(p, program, args)
   end
 end)
@@ -180,7 +181,7 @@ function M.command(o)
     async.notify("Unknown :Build subcommand: " .. sub, vim.log.levels.ERROR)
     return
   end
-  fn(rest)
+  fn(rest, o.bang)
 end
 
 function M.complete(arglead, cmdline)

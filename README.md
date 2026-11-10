@@ -40,7 +40,8 @@ choose (target, debug target, program, arguments) is remembered per project, in
 | `:Build debug` | build the debug target, then debug it with nvim-dap |
 | `:Build debug-external` | the same, in `vim.g.build.external_debugger` |
 | `:Build debug-target [name]` | choose the debug target (or set it) |
-| `:Build args [args]` | the program's arguments (prompted, or set) |
+| `:Build args [args]` | the program's arguments (set, or edited on a pre-filled command line, where `<C-f>` opens the command-line window) |
+| `:Build args!` | clear the program's arguments |
 | `:Build program` | set the program the targets make, where it cannot be told |
 | `:Build info` | show what is known and chosen for this project |
 | `:Build cancel` | stop the build running |

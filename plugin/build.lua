@@ -12,6 +12,7 @@ local DEFAULT_FILETYPES = { "c", "cpp", "make", "cmake", "sh" }
 
 local opts = {
   nargs = "*",
+  bang = true,
   complete = function(arglead, cmdline)
     return require("build").complete(arglead, cmdline)
   end,

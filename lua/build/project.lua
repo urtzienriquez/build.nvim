@@ -206,8 +206,9 @@ function M.set(p, which, choice)
   M.save()
 end
 
---- Asks which target `which` is (in a coroutine); "other…" types one.
-function M.pick(p, which, current)
+--- Asks which target `which` is (in a coroutine); "other…" types one: at a prompt, or with
+--- `opts.cmdline` on the command line (`:Build target `), and then this returns nil.
+function M.pick(p, which, current, opts)
   local list = M.targets(p)
   for _, t in ipairs(p.state.custom) do
     if not vim.tbl_contains(list, t) then
@@ -224,7 +225,11 @@ function M.pick(p, which, current)
       return (t == "" and "(default)" or t) .. (t == current and "  ●" or "")
     end,
   })
-  if choice == CUSTOM then
+  if choice == CUSTOM and opts and opts.cmdline then
+    async.notify((vim.trim(CUSTOM_PROMPT[p.kind]):gsub(":$", "")))
+    async.cmdline(("Build %s "):format(which == "target" and "target" or "debug-target"))
+    return nil
+  elseif choice == CUSTOM then
     choice = async.input({ prompt = CUSTOM_PROMPT[p.kind] })
     choice = choice and vim.trim(choice)
   end
